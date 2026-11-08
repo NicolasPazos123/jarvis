@@ -3,19 +3,21 @@
 Asistente personal de IA que estoy construyendo desde cero para aprender AI Engineering.
 Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 
-## Estado actual: v0 – El cerebro
+## Estado actual: v1 – Las manos (en progreso)
 
-- [x] Chat en la terminal con un LLM local (`llama3.2:3b` vía Ollama)
+- [x] Chat en la terminal con un LLM local (`qwen2.5:3b` vía Ollama)
 - [x] Memoria de la conversación (historial de mensajes)
 - [x] Personalidad y reglas definidas con un *system prompt*
 - [x] Respuestas en *streaming* (se muestran mientras se generan)
 - [x] Temperatura configurable + experimento comparativo (`experimento_temperatura.py`)
+- [x] *Tool calling*: herramientas para ver la fecha/hora, crear notas y leer notas (`herramientas.py`)
+- [x] *Agent loop*: el modelo encadena varias herramientas (pensar → actuar → observar) con un freno de seguridad de 5 pasos
 
 ## Cómo correrlo
 
 1. Instala [Ollama](https://ollama.com) y descarga el modelo:
    ```bash
-   ollama pull llama3.2:3b
+   ollama pull qwen2.5:3b
    ```
 2. Crea el entorno e instala dependencias:
    ```bash
@@ -39,6 +41,12 @@ Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 - **Alucinación:** cuando el modelo inventa información con seguridad. Un buen system prompt la reduce, pero no la elimina.
 - **Streaming:** recibir la respuesta en pedazos (*chunks*) a medida que se genera cada token. Tarda lo mismo, pero se siente más rápida.
 - **Temperatura:** controla qué tan arriesgado es el modelo al elegir el siguiente token. Con 0 siempre elige el más probable (en mi experimento repitió el mismo nombre 3 veces); con 1.5 dio 3 nombres distintos. Baja = precisión, alta = creatividad.
+- **Tool calling:** el modelo no ejecuta nada; solo *pide* usar una herramienta. Mi programa la ejecuta y le devuelve el resultado (rol `tool`). El modelo nunca ve el código, solo un "menú" en JSON Schema con nombre, descripción y parámetros.
+- **Elegir el modelo importa:** con el mismo código, `llama3.2:3b` usaba herramientas hasta para contar chistes; `qwen2.5:3b` lo hizo mucho mejor.
+- **Agent loop:** ciclo de pensar → actuar → observar que se repite hasta que el modelo ya no pide herramientas. Necesita un límite de pasos para evitar ciclos infinitos.
+- **Parallel tool calling y dependencias:** el modelo pedía varias herramientas a la vez aunque una dependiera de otra, y rellenaba datos con texto genérico. Lo resolví ejecutando una herramienta por vuelta y recordándole las pendientes en la observación.
+- **Las instrucciones sugieren, el código obliga:** las reglas críticas no pueden depender solo del prompt.
+- **Diseño de herramientas:** `crear_nota` agrega la fecha y hora automáticamente, así el dato es correcto aunque el modelo no lo incluya.
 
 ## Roadmap
 

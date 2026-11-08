@@ -7,3 +7,6 @@ __pycache__/
 
 # Archivos del sistema de macOS
 .DS_Store
+
+# Notas personales que guarda Jarvis
+notas.txt
