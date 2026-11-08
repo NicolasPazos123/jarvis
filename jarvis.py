@@ -2,6 +2,10 @@ import ollama
 
 MODELO = "llama3.2:3b"
 
+# Temperatura: qué tan "arriesgado" es el modelo al elegir el siguiente token.
+# 0 = siempre elige el más probable (predecible). Más alto = más variado/creativo.
+TEMPERATURA = 0.7
+
 # El system prompt: las instrucciones de fondo que definen quién es Jarvis.
 SYSTEM_PROMPT = """Tu nombre es Jarvis. Eres el asistente personal de Nicolás.
 
@@ -17,23 +21,34 @@ Cómo debes responder:
 """
 
 # El historial vive FUERA del while: así no se borra en cada vuelta.
-# Empieza solo con el system prompt.
 mensajes = [
     {"role": "system", "content": SYSTEM_PROMPT},
 ]
 
 while True:
-    pregunta = input("Tú: ")
+    pregunta = input("\nTú: ")
     if pregunta == "salir":
         break
 
     # 1. Guardamos lo que dijiste en el historial
     mensajes.append({"role": "user", "content": pregunta})
 
-    # 2. Le enviamos TODA la conversación al modelo, no solo la última pregunta
-    respuesta = ollama.chat(model=MODELO, messages=mensajes)
-    texto = respuesta["message"]["content"]
-    print("Jarvis:", texto)
+    # 2. Pedimos la respuesta en modo streaming: llega en pedazos (chunks)
+    #    a medida que el modelo genera cada token, en vez de toda al final.
+    stream = ollama.chat(
+        model=MODELO,
+        messages=mensajes,
+        stream=True,
+        options={"temperature": TEMPERATURA},
+    )
 
-    # 3. Guardamos también lo que respondió Jarvis
+    print("Jarvis: ", end="", flush=True)
+    texto = ""
+    for chunk in stream:
+        pedazo = chunk["message"]["content"]
+        print(pedazo, end="", flush=True)  # lo mostramos apenas llega
+        texto += pedazo                    # y lo vamos juntando
+    print()
+
+    # 3. Guardamos la respuesta completa en el historial
     mensajes.append({"role": "assistant", "content": texto})

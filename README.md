@@ -8,6 +8,8 @@ Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 - [x] Chat en la terminal con un LLM local (`llama3.2:3b` vía Ollama)
 - [x] Memoria de la conversación (historial de mensajes)
 - [x] Personalidad y reglas definidas con un *system prompt*
+- [x] Respuestas en *streaming* (se muestran mientras se generan)
+- [x] Temperatura configurable + experimento comparativo (`experimento_temperatura.py`)
 
 ## Cómo correrlo
 
@@ -35,6 +37,8 @@ Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 - **Ventana de contexto:** el límite de texto que el modelo puede leer de una vez. Mientras más larga la conversación, más se acerca a ese límite.
 - **System prompt:** instrucciones de fondo que definen quién es el asistente y cómo responde.
 - **Alucinación:** cuando el modelo inventa información con seguridad. Un buen system prompt la reduce, pero no la elimina.
+- **Streaming:** recibir la respuesta en pedazos (*chunks*) a medida que se genera cada token. Tarda lo mismo, pero se siente más rápida.
+- **Temperatura:** controla qué tan arriesgado es el modelo al elegir el siguiente token. Con 0 siempre elige el más probable (en mi experimento repitió el mismo nombre 3 veces); con 1.5 dio 3 nombres distintos. Baja = precisión, alta = creatividad.
 
 ## Roadmap
 
