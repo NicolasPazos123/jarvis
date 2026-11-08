@@ -1,0 +1,9 @@
+# Entorno virtual de Python (cada uno crea el suyo)
+venv/
+
+# Archivos temporales de Python
+__pycache__/
+*.pyc
+
+# Archivos del sistema de macOS
+.DS_Store
