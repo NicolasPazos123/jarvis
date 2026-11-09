@@ -10,3 +10,6 @@ __pycache__/
 
 # Notas personales que guarda Jarvis
 notas.txt
+
+# Archivos personales en la carpeta de trabajo de Jarvis
+espacio_jarvis/

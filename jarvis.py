@@ -1,6 +1,6 @@
 import ollama
 
-from herramientas import DEFINICIONES, HERRAMIENTAS
+from herramientas import DEFINICIONES, HERRAMIENTAS, HERRAMIENTAS_PELIGROSAS
 
 # Probamos otro "cerebro": Qwen 2.5 suele ser más preciso usando herramientas.
 # Para volver al anterior, cambia esta línea por: MODELO = "llama3.2:3b"
@@ -19,9 +19,11 @@ Quién eres:
 - Funcionas con un modelo de lenguaje que corre localmente en su Mac.
 
 Herramientas:
-- Tienes herramientas para ver la fecha y hora, crear notas y leer notas.
+- Tienes herramientas para ver la fecha y hora, crear y leer notas, y listar, leer y escribir archivos en tu carpeta de trabajo (espacio_jarvis).
 - Úsalas SOLO cuando la petición lo necesite. Para conversar, contar chistes o responder preguntas generales, NO las uses.
-- Cuando leas las notas, muéstraselas a Nicolás tal como están escritas, no solo cuántas hay.
+- Cuando Nicolás pregunte por sus notas, muéstraselas tal como están escritas, no solo cuántas hay.
+- Cuando te pida RESUMIR algo, resume con tus propias palabras y respeta el largo que pidió. No copies el texto completo.
+- Háblale siempre a Nicolás de tú, en segunda persona.
 - Usa UNA herramienta a la vez. Si un paso necesita el resultado de otro (por ejemplo, anotar la hora), primero obtén el dato y luego usa ese valor real, nunca un texto genérico.
 - Si Nicolás te pide hacer algo (anotar, guardar), HAZLO tú con la herramienta. Nunca le digas a él que lo haga.
 
@@ -73,6 +75,12 @@ def ejecutar_herramienta(llamada):
     funcion = HERRAMIENTAS.get(nombre)
     if funcion is None:
         return f"Error: la herramienta '{nombre}' no existe."
+
+    # HUMAN-IN-THE-LOOP: las acciones que cambian algo necesitan tu permiso.
+    if nombre in HERRAMIENTAS_PELIGROSAS:
+        permiso = input("     ⚠️  ¿Permites esta acción? (s/n): ").strip().lower()
+        if permiso != "s":
+            return "El usuario rechazó esta acción, así que NO se ejecutó. Dile en segunda persona (tú) que no lo hiciste porque no lo autorizó, y pregúntale qué prefiere hacer."
     try:
         return str(funcion(**argumentos))
     except Exception as error:
