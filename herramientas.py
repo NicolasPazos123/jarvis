@@ -4,6 +4,8 @@ que el modelo puede PEDIR que ejecutemos."""
 from datetime import datetime
 from pathlib import Path
 
+from memoria import guardar_recuerdo
+
 ARCHIVO_NOTAS = Path(__file__).parent / "notas.txt"
 
 # La ÚNICA carpeta donde Jarvis puede leer y escribir archivos (su "sandbox").
@@ -75,6 +77,7 @@ HERRAMIENTAS = {
     "listar_archivos": listar_archivos,
     "leer_archivo": leer_archivo,
     "escribir_archivo": escribir_archivo,
+    "guardar_recuerdo": guardar_recuerdo,
 }
 
 
@@ -147,6 +150,20 @@ DEFINICIONES = [
                     "contenido": {"type": "string", "description": "Texto completo que tendrá el archivo"},
                 },
                 "required": ["nombre", "contenido"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "guardar_recuerdo",
+            "description": "Guarda un dato importante sobre Nicolás en su memoria a largo plazo. Úsala cuando diga 'recuerda que...' o comparta algo personal útil para el futuro (gustos, planes, fechas, pendientes). Escribe el recuerdo claro y con contexto, por ejemplo 'Bases de Datos es una materia de la universidad'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "texto": {"type": "string", "description": "El recuerdo, redactado de forma clara y con contexto"},
+                },
+                "required": ["texto"],
             },
         },
     },

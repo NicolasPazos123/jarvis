@@ -3,7 +3,7 @@
 Asistente personal de IA que estoy construyendo desde cero para aprender AI Engineering.
 Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 
-## Estado actual: v1 – Las manos (en progreso)
+## Estado actual: v2 – Memoria a largo plazo
 
 - [x] Chat en la terminal con un LLM local (`qwen2.5:3b` vía Ollama)
 - [x] Memoria de la conversación (historial de mensajes)
@@ -12,6 +12,8 @@ Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 - [x] Temperatura configurable + experimento comparativo (`experimento_temperatura.py`)
 - [x] *Tool calling*: herramientas para ver la fecha/hora, crear notas y leer notas (`herramientas.py`)
 - [x] *Agent loop*: el modelo encadena varias herramientas (pensar → actuar → observar) con un freno de seguridad de 5 pasos
+- [x] Archivos con *sandbox* (`espacio_jarvis/`) y confirmación humana antes de escribir (*human-in-the-loop*)
+- [x] Memoria a largo plazo con **RAG**: recuerdos guardados con embeddings (`bge-m3`) en `memoria.json` y búsqueda semántica antes de cada respuesta (`memoria.py`)
 
 ## Cómo correrlo
 
@@ -48,11 +50,17 @@ Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 - **Las instrucciones sugieren, el código obliga:** las reglas críticas no pueden depender solo del prompt.
 - **Diseño de herramientas:** `crear_nota` agrega la fecha y hora automáticamente, así el dato es correcto aunque el modelo no lo incluya.
 
+- **Sandbox y human-in-the-loop:** el agente solo puede tocar archivos dentro de una carpeta (lo garantiza el código, no el prompt) y las acciones que cambian algo requieren mi confirmación.
+- **Embeddings:** un vector que representa el significado de un texto. Su dimensión depende del modelo (`bge-m3` = 1024), no del largo del texto. `nomic-embed-text` falló en español; `bge-m3` (multilingüe) funcionó.
+- **Similitud coseno y top-k:** comparar el vector de la consulta con el de cada documento y quedarse con los k más parecidos.
+- **RAG (Retrieval-Augmented Generation):** buscar los recuerdos relevantes, agregarlos al mensaje y que el LLM responda con ellos. El modelo no memoriza nada: mi código le pone la información correcta en el contexto.
+- **Calibrar el umbral con datos:** empecé con 0.55 a ojo y bloqueaba todo. Midiendo puntajes reales lo bajé a 0.45. Hay un trade-off entre falsos negativos y falsos positivos; en RAG suele ser peor perder un recuerdo relevante.
+
 ## Roadmap
 
 - [x] v0 – Cerebro: chat con memoria y personalidad
 - [ ] v1 – Manos: *tool calling* y *agent loop* (que pueda ejecutar acciones)
-- [ ] v2 – Memoria a largo plazo: embeddings y RAG
+- [x] v2 – Memoria a largo plazo: embeddings y RAG
 - [ ] v3 – Voz: hablarle y que responda hablando
 - [ ] v4 – Iniciativa: que actúe por su cuenta
 - [ ] v5 – Evals y seguridad

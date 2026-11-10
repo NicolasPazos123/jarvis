@@ -1,6 +1,7 @@
 import ollama
 
 from herramientas import DEFINICIONES, HERRAMIENTAS, HERRAMIENTAS_PELIGROSAS
+from memoria import UMBRAL, buscar_recuerdos
 
 # Probamos otro "cerebro": Qwen 2.5 suele ser más preciso usando herramientas.
 # Para volver al anterior, cambia esta línea por: MODELO = "llama3.2:3b"
@@ -19,13 +20,18 @@ Quién eres:
 - Funcionas con un modelo de lenguaje que corre localmente en su Mac.
 
 Herramientas:
-- Tienes herramientas para ver la fecha y hora, crear y leer notas, y listar, leer y escribir archivos en tu carpeta de trabajo (espacio_jarvis).
+- Tienes herramientas para ver la fecha y hora, crear y leer notas, listar, leer y escribir archivos en tu carpeta de trabajo (espacio_jarvis), y guardar recuerdos.
+
+Memoria a largo plazo:
+- Cuando Nicolás diga 'recuerda que...', usa guardar_recuerdo.
+- A veces recibirás 'Recuerdos guardados' junto a su mensaje. Úsalos si sirven para responder; si no tienen relación, ignóralos.
 - Úsalas SOLO cuando la petición lo necesite. Para conversar, contar chistes o responder preguntas generales, NO las uses.
 - Cuando Nicolás pregunte por sus notas, muéstraselas tal como están escritas, no solo cuántas hay.
 - Cuando te pida RESUMIR algo, resume con tus propias palabras y respeta el largo que pidió. No copies el texto completo.
 - Háblale siempre a Nicolás de tú, en segunda persona.
 - Usa UNA herramienta a la vez. Si un paso necesita el resultado de otro (por ejemplo, anotar la hora), primero obtén el dato y luego usa ese valor real, nunca un texto genérico.
 - Si Nicolás te pide hacer algo (anotar, guardar), HAZLO tú con la herramienta. Nunca le digas a él que lo haga.
+- Nunca digas 'voy a revisar' o 'veamos' sin usar la herramienta en ese mismo momento.
 
 Cómo debes responder:
 - Responde siempre en español.
@@ -92,8 +98,27 @@ while True:
     if pregunta == "salir":
         break
 
-    mensajes.append({"role": "user", "content": pregunta})
+    # ---------- RAG: Retrieval-Augmented Generation ----------
+    # R (Retrieval): buscamos los recuerdos más parecidos a la pregunta.
+    # Pedimos el top 3 SIN umbral para poder ver todos los puntajes (modo diagnóstico).
+    candidatos = buscar_recuerdos(pregunta, umbral=0.0)
+    encontrados = [(p, r) for p, r in candidatos if p >= UMBRAL]
 
+    if candidatos:
+        print(f"  🧠 Búsqueda en memoria (umbral {UMBRAL}):")
+        for puntaje, recuerdo in candidatos:
+            marca = "✅" if puntaje >= UMBRAL else "❌"
+            print(f"     {marca} {puntaje:.3f}  {recuerdo['texto']}")
+
+    # A (Augmented): solo los que pasaron el umbral se agregan al mensaje
+    contenido = pregunta
+    if encontrados:
+        lista = "\n".join(f"- ({r['fecha']}) {r['texto']}" for _, r in encontrados)
+        contenido += f"\n\n[Recuerdos guardados que pueden servir para responder:\n{lista}]"
+
+    mensajes.append({"role": "user", "content": contenido})
+
+    # G (Generation): el modelo responde, ya con esos recuerdos en su contexto
     # ---------- EL AGENT LOOP ----------
     # Pensar -> actuar -> observar, y repetir hasta que el modelo ya no pida herramientas.
     termino = False
