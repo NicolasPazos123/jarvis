@@ -3,7 +3,7 @@
 Asistente personal de IA que estoy construyendo desde cero para aprender AI Engineering.
 Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 
-## Estado actual: v2 – Memoria a largo plazo
+## Estado actual: v4 – Voz e iniciativa
 
 - [x] Chat en la terminal con un LLM local (`qwen2.5:3b` vía Ollama)
 - [x] Memoria de la conversación (historial de mensajes)
@@ -14,6 +14,9 @@ Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 - [x] *Agent loop*: el modelo encadena varias herramientas (pensar → actuar → observar) con un freno de seguridad de 5 pasos
 - [x] Archivos con *sandbox* (`espacio_jarvis/`) y confirmación humana antes de escribir (*human-in-the-loop*)
 - [x] Memoria a largo plazo con **RAG**: recuerdos guardados con embeddings (`bge-m3`) en `memoria.json` y búsqueda semántica antes de cada respuesta (`memoria.py`)
+- [x] Voz: Jarvis habla con TTS (`say` de macOS, `voz.py`) y escucha con STT (Whisper optimizado para Apple Silicon con MLX, `oido.py`)
+- [x] Iniciativa: recordatorios con un proceso en segundo plano que avisa con notificaciones de macOS (`recordatorios.py`, `vigilante.py`)
+- [x] Verificador (*guardrail*) que detecta cuando el modelo dice que hizo una acción sin haber usado ninguna herramienta
 
 ## Cómo correrlo
 
@@ -56,11 +59,16 @@ Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 - **RAG (Retrieval-Augmented Generation):** buscar los recuerdos relevantes, agregarlos al mensaje y que el LLM responda con ellos. El modelo no memoriza nada: mi código le pone la información correcta en el contexto.
 - **Calibrar el umbral con datos:** empecé con 0.55 a ojo y bloqueaba todo. Midiendo puntajes reales lo bajé a 0.45. Hay un trade-off entre falsos negativos y falsos positivos; en RAG suele ser peor perder un recuerdo relevante.
 
+- **TTS y STT:** el LLM nunca habla ni escucha; son componentes aparte. STT (Whisper) convierte audio en texto y TTS convierte texto en audio. Para la computadora, el audio es una lista de números (16.000 por segundo).
+- **Agentes proactivos:** un proceso en segundo plano revisa cada cierto tiempo (*polling*) si se cumple una condición (*trigger*) y actúa. Mi vigilante solo avisa: a más impacto de una acción, menos autonomía.
+- **Alucinación de acción y guardrails:** el modelo dijo "creé un recordatorio" sin usar la herramienta. Lo resolví con un verificador en el código que rechaza esa respuesta y lo obliga a actuar de verdad.
+- **Diseño de herramientas:** el modelo pequeño calculó mal "el viernes" (puso un domingo). Ahora el modelo solo indica `dia_semana` y `hora`, y el código calcula la fecha exacta. Los cálculos exactos van en el código.
+
 ## Roadmap
 
 - [x] v0 – Cerebro: chat con memoria y personalidad
-- [ ] v1 – Manos: *tool calling* y *agent loop* (que pueda ejecutar acciones)
+- [x] v1 – Manos: *tool calling* y *agent loop* (que pueda ejecutar acciones)
 - [x] v2 – Memoria a largo plazo: embeddings y RAG
-- [ ] v3 – Voz: hablarle y que responda hablando
-- [ ] v4 – Iniciativa: que actúe por su cuenta
+- [x] v3 – Voz: hablarle y que responda hablando
+- [x] v4 – Iniciativa: que actúe por su cuenta
 - [ ] v5 – Evals y seguridad

@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 from memoria import guardar_recuerdo
+from recordatorios import crear_recordatorio
 
 ARCHIVO_NOTAS = Path(__file__).parent / "notas.txt"
 
@@ -78,6 +79,7 @@ HERRAMIENTAS = {
     "leer_archivo": leer_archivo,
     "escribir_archivo": escribir_archivo,
     "guardar_recuerdo": guardar_recuerdo,
+    "crear_recordatorio": crear_recordatorio,
 }
 
 
@@ -162,6 +164,24 @@ DEFINICIONES = [
                 "type": "object",
                 "properties": {
                     "texto": {"type": "string", "description": "El recuerdo, redactado de forma clara y con contexto"},
+                },
+                "required": ["texto"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "crear_recordatorio",
+            "description": "Programa un recordatorio: Jarvis avisará a Nicolás con una notificación cuando llegue la hora. Úsala cuando diga 'recuérdame...' o 'avísame...'. Elige UNA forma de indicar el momento: en_minutos para tiempos relativos ('en 10 minutos', 'en 2 horas'); dia_semana + hora para días de la semana ('el viernes a las 6 de la tarde'); fecha_hora solo si da una fecha exacta con número de día. NO calcules fechas tú: el sistema las calcula.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "texto": {"type": "string", "description": "Qué hay que recordarle, por ejemplo 'tomar agua'"},
+                    "en_minutos": {"type": "integer", "description": "Dentro de cuántos minutos avisar, por ejemplo 120 para 'en 2 horas'"},
+                    "dia_semana": {"type": "string", "description": "Día de la semana en español: lunes, martes, miércoles, jueves, viernes, sábado o domingo"},
+                    "hora": {"type": "string", "description": "Hora en formato 24 horas HH:MM, por ejemplo 18:00 para las 6 de la tarde"},
+                    "fecha_hora": {"type": "string", "description": "Fecha y hora exacta en formato AAAA-MM-DD HH:MM, por ejemplo 2026-12-24 20:00"},
                 },
                 "required": ["texto"],
             },
