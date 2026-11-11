@@ -17,6 +17,7 @@ Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 - [x] Voz: Jarvis habla con TTS (`say` de macOS, `voz.py`) y escucha con STT (Whisper optimizado para Apple Silicon con MLX, `oido.py`)
 - [x] Iniciativa: recordatorios con un proceso en segundo plano que avisa con notificaciones de macOS (`recordatorios.py`, `vigilante.py`)
 - [x] **Evals automáticas** (`evals.py`): 12 casos de elección de herramientas y 7 de búsqueda en memoria. Resultado: `qwen2.5:3b` 12/12 (100%) vs `llama3.2:3b` 8/12 (67%) en herramientas; memoria 6/7 (86%)
+- [x] **Defensa contra *prompt injection*** en 5 capas: delimitadores, detector de frases sospechosas, reglas en el system prompt, confirmación obligatoria para acciones después de leer contenido externo ("contexto contaminado") e higiene del historial
 - [x] Configuración central (`config.py`): modelo y system prompt en un solo lugar
 - [x] Verificador (*guardrail*) que detecta cuando el modelo dice que hizo una acción sin haber usado ninguna herramienta
 
@@ -71,6 +72,10 @@ Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 - **Prueba de regresión:** `qwen` confundía `crear_nota` con `guardar_recuerdo` porque sus descripciones se pisaban. Al separarlas subió a 12/12 sin romper ningún otro caso.
 - **No hacer trampa en el examen:** "¿qué almorzar?" trae la rutina del gimnasio. Es un límite real de los embeddings; la solución correcta (re-ranking o búsqueda híbrida) queda como mejora futura.
 
+- **Prompt injection:** un archivo con instrucciones escondidas puede manipular al agente, porque para el LLM todo es texto en el mismo contexto. Lo probé con `noticia.txt`: el modelo **intentó guardar un recuerdo falso** dictado por el atacante. Las capas basadas en el prompt fallaron; lo detuvo la capa en el código, que exigió mi confirmación.
+- **Defensa en profundidad:** varias capas, porque ninguna es perfecta. Las del prompt reducen la probabilidad; las del código garantizan que, aunque el modelo caiga, no pueda hacer daño sin permiso.
+- **El veneno se queda en el historial:** el texto malicioso siguió influyendo en mensajes posteriores. Por eso borro del historial el contenido de los archivos al terminar cada turno.
+
 ## Roadmap
 
 - [x] v0 – Cerebro: chat con memoria y personalidad
@@ -78,4 +83,4 @@ Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 - [x] v2 – Memoria a largo plazo: embeddings y RAG
 - [x] v3 – Voz: hablarle y que responda hablando
 - [x] v4 – Iniciativa: que actúe por su cuenta
-- [ ] v5 – Evals y seguridad
+- [x] v5 – Evals y seguridad

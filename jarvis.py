@@ -3,7 +3,13 @@ from datetime import datetime
 
 import ollama
 
-from herramientas import DEFINICIONES, HERRAMIENTAS, HERRAMIENTAS_PELIGROSAS
+from herramientas import (
+    DEFINICIONES,
+    HERRAMIENTAS,
+    HERRAMIENTAS_EXTERNAS,
+    HERRAMIENTAS_PELIGROSAS,
+    HERRAMIENTAS_QUE_MODIFICAN,
+)
 from memoria import UMBRAL, buscar_recuerdos
 from voz import hablar
 from oido import escuchar
@@ -25,6 +31,9 @@ MAX_PASOS = 5
 mensajes = [
     {"role": "system", "content": SYSTEM_PROMPT},
 ]
+
+# ¿Se leyó contenido externo (un archivo) en este turno? Se reinicia con cada mensaje tuyo.
+contexto_externo = False
 
 
 def llamar_modelo():
@@ -64,8 +73,14 @@ def ejecutar_herramienta(llamada):
     if funcion is None:
         return f"Error: la herramienta '{nombre}' no existe."
 
-    # HUMAN-IN-THE-LOOP: las acciones que cambian algo necesitan tu permiso.
-    if nombre in HERRAMIENTAS_PELIGROSAS:
+    # DEFENSA 3 (contexto contaminado): si en este turno se leyó un archivo y ahora
+    # el modelo quiere GUARDAR o CREAR algo, puede ser una orden escondida en ese archivo.
+    contaminado = contexto_externo and nombre in HERRAMIENTAS_QUE_MODIFICAN
+    if contaminado:
+        print("     🛡️  Esta acción viene DESPUÉS de leer un archivo externo: podría ser un prompt injection.")
+
+    # HUMAN-IN-THE-LOOP: las acciones peligrosas o "contaminadas" necesitan tu permiso.
+    if nombre in HERRAMIENTAS_PELIGROSAS or contaminado:
         permiso = input("     ⚠️  ¿Permites esta acción? (s/n): ").strip().lower()
         if permiso != "s":
             return "El usuario rechazó esta acción, así que NO se ejecutó. Dile en segunda persona (tú) que no lo hiciste porque no lo autorizó, y pregúntale qué prefiere hacer."
@@ -117,6 +132,7 @@ try:
         # Pensar -> actuar -> observar, y repetir hasta que el modelo ya no pida herramientas.
         termino = False
         uso_herramientas = False
+        contexto_externo = False
         for paso in range(MAX_PASOS):
             # PENSAR: el modelo decide si responde o pide herramientas
             texto, llamadas = llamar_modelo()
@@ -152,6 +168,8 @@ try:
             print(f"  (paso {paso + 1})", end="")
             resultado = ejecutar_herramienta(llamada)
             uso_herramientas = True
+            if llamada.function.name in HERRAMIENTAS_EXTERNAS:
+                contexto_externo = True
 
             # Si había otras herramientas pendientes, se lo recordamos al modelo
             # junto con el resultado, para que no "olvide" su plan.
@@ -168,6 +186,13 @@ try:
 
         if not termino:
             print("Jarvis: Me detuve porque necesité demasiados pasos seguidos. ¿Lo intentamos de otra forma?")
+
+        # DEFENSA 5 (higiene del contexto): al terminar el turno, borramos del historial
+        # el texto completo de los archivos leídos. Así, si un archivo traía instrucciones
+        # maliciosas, no se quedan "envenenando" los siguientes mensajes.
+        for m in mensajes:
+            if isinstance(m, dict) and m.get("role") == "tool" and "<<<INICIO DEL ARCHIVO" in m.get("content", ""):
+                m["content"] = "[Aquí estaba el contenido de un archivo leído antes. Se quitó por seguridad; si lo necesitas, vuelve a leerlo.]"
 except (KeyboardInterrupt, EOFError):
     # Ctrl+C: salimos de forma ordenada en vez de mostrar un error
     print("\n👋 Hasta luego, Nicolás.")
