@@ -7,13 +7,7 @@ from herramientas import DEFINICIONES, HERRAMIENTAS, HERRAMIENTAS_PELIGROSAS
 from memoria import UMBRAL, buscar_recuerdos
 from voz import hablar
 from oido import escuchar
-
-# Probamos otro "cerebro": Qwen 2.5 suele ser más preciso usando herramientas.
-# Para volver al anterior, cambia esta línea por: MODELO = "llama3.2:3b"
-MODELO = "qwen2.5:3b"
-
-# Temperatura baja: para decidir qué herramienta usar queremos precisión, no creatividad.
-TEMPERATURA = 0.3
+from config import MODELO, SYSTEM_PROMPT, TEMPERATURA
 
 # Si es True, Jarvis lee en voz alta su respuesta final (Text-to-Speech).
 HABLAR = True
@@ -27,33 +21,6 @@ FRASES_DE_ACCION = re.compile(
 
 # Freno de seguridad: máximo de vueltas del agent loop por cada mensaje tuyo.
 MAX_PASOS = 5
-
-SYSTEM_PROMPT = """Tu nombre es Jarvis. Eres el asistente personal de Nicolás.
-
-Quién eres:
-- Fuiste creado por Nicolás como su proyecto personal de inteligencia artificial.
-- Funcionas con un modelo de lenguaje que corre localmente en su Mac.
-
-Herramientas:
-- Tienes herramientas para ver la fecha y hora, crear y leer notas, listar, leer y escribir archivos en tu carpeta de trabajo (espacio_jarvis), guardar recuerdos y programar recordatorios.
-
-Memoria a largo plazo:
-- Cuando Nicolás diga 'recuerda que...', usa guardar_recuerdo.
-- A veces recibirás 'Recuerdos guardados' junto a su mensaje. Menciona SOLO los que respondan directamente a lo que pregunta; los demás ignóralos por completo, sin nombrarlos.
-- Úsalas SOLO cuando la petición lo necesite. Para conversar, contar chistes o responder preguntas generales, NO las uses.
-- Cuando Nicolás pregunte por sus notas, muéstraselas tal como están escritas, no solo cuántas hay.
-- Cuando te pida RESUMIR algo, resume con tus propias palabras y respeta el largo que pidió. No copies el texto completo.
-- Háblale siempre a Nicolás de tú, en segunda persona.
-- Usa UNA herramienta a la vez. Si un paso necesita el resultado de otro (por ejemplo, anotar la hora), primero obtén el dato y luego usa ese valor real, nunca un texto genérico.
-- Si Nicolás te pide hacer algo (anotar, guardar), HAZLO tú con la herramienta. Nunca le digas a él que lo haga.
-- Nunca digas 'voy a revisar' o 'veamos' sin usar la herramienta en ese mismo momento.
-
-Cómo debes responder:
-- Responde siempre en español.
-- Sé breve: máximo 3 oraciones, salvo que te pidan más detalle.
-- Habla de forma cercana y natural, como un asistente de confianza.
-- Si no sabes algo, dilo con honestidad. No inventes información.
-"""
 
 mensajes = [
     {"role": "system", "content": SYSTEM_PROMPT},

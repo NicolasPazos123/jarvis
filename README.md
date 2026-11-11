@@ -16,6 +16,8 @@ Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 - [x] Memoria a largo plazo con **RAG**: recuerdos guardados con embeddings (`bge-m3`) en `memoria.json` y búsqueda semántica antes de cada respuesta (`memoria.py`)
 - [x] Voz: Jarvis habla con TTS (`say` de macOS, `voz.py`) y escucha con STT (Whisper optimizado para Apple Silicon con MLX, `oido.py`)
 - [x] Iniciativa: recordatorios con un proceso en segundo plano que avisa con notificaciones de macOS (`recordatorios.py`, `vigilante.py`)
+- [x] **Evals automáticas** (`evals.py`): 12 casos de elección de herramientas y 7 de búsqueda en memoria. Resultado: `qwen2.5:3b` 12/12 (100%) vs `llama3.2:3b` 8/12 (67%) en herramientas; memoria 6/7 (86%)
+- [x] Configuración central (`config.py`): modelo y system prompt en un solo lugar
 - [x] Verificador (*guardrail*) que detecta cuando el modelo dice que hizo una acción sin haber usado ninguna herramienta
 
 ## Cómo correrlo
@@ -63,6 +65,11 @@ Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 - **Agentes proactivos:** un proceso en segundo plano revisa cada cierto tiempo (*polling*) si se cumple una condición (*trigger*) y actúa. Mi vigilante solo avisa: a más impacto de una acción, menos autonomía.
 - **Alucinación de acción y guardrails:** el modelo dijo "creé un recordatorio" sin usar la herramienta. Lo resolví con un verificador en el código que rechaza esa respuesta y lo obliga a actuar de verdad.
 - **Diseño de herramientas:** el modelo pequeño calculó mal "el viernes" (puso un domingo). Ahora el modelo solo indica `dia_semana` y `hora`, y el código calcula la fecha exacta. Los cálculos exactos van en el código.
+
+- **Evals:** un examen con solucionario que se corre solo y da una nota. Con temperatura 0 para que sea repetible. Me permitió confirmar con datos que `qwen` es mejor que `llama` para elegir herramientas (100% vs 67%).
+- **Las evals muestran qué pieza falla:** la búsqueda en memoria sacó la misma nota con los dos LLMs, porque esa parte depende del modelo de embeddings, no del LLM.
+- **Prueba de regresión:** `qwen` confundía `crear_nota` con `guardar_recuerdo` porque sus descripciones se pisaban. Al separarlas subió a 12/12 sin romper ningún otro caso.
+- **No hacer trampa en el examen:** "¿qué almorzar?" trae la rutina del gimnasio. Es un límite real de los embeddings; la solución correcta (re-ranking o búsqueda híbrida) queda como mejora futura.
 
 ## Roadmap
 

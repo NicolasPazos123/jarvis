@@ -100,7 +100,7 @@ DEFINICIONES = [
         "type": "function",
         "function": {
             "name": "crear_nota",
-            "description": "Guarda una nota para Nicolás. Úsala cuando pida anotar, apuntar o guardar algo.",
+            "description": "Guarda una nota de algo que Nicolás tiene que HACER: tareas, pendientes, cosas por hacer. Úsala cuando diga 'anota que...' o 'apunta que...'. No la uses para gustos ni datos personales (eso es guardar_recuerdo).",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -159,7 +159,7 @@ DEFINICIONES = [
         "type": "function",
         "function": {
             "name": "guardar_recuerdo",
-            "description": "Guarda un dato importante sobre Nicolás en su memoria a largo plazo. Úsala cuando diga 'recuerda que...' o comparta algo personal útil para el futuro (gustos, planes, fechas, pendientes). Escribe el recuerdo claro y con contexto, por ejemplo 'Bases de Datos es una materia de la universidad'.",
+            "description": "Guarda en la memoria a largo plazo un DATO sobre Nicolás: gustos, preferencias, datos personales, fechas importantes. Úsala cuando diga 'recuerda que...'. No la uses para tareas o pendientes que él pida anotar (eso es crear_nota). Escribe el recuerdo claro y con contexto, por ejemplo 'Bases de Datos es una materia de la universidad'.",
             "parameters": {
                 "type": "object",
                 "properties": {

@@ -8,9 +8,9 @@ import time
 
 import ollama
 
+from config import MODELO
 from recordatorios import marcar_avisado, vencidos
 
-MODELO = "qwen2.5:3b"
 CADA_SEGUNDOS = 30
 
 
