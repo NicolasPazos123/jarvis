@@ -18,6 +18,7 @@ Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 - [x] Iniciativa: recordatorios con un proceso en segundo plano que avisa con notificaciones de macOS (`recordatorios.py`, `vigilante.py`)
 - [x] **Evals automáticas** (`evals.py`): 12 casos de elección de herramientas y 7 de búsqueda en memoria. Resultado: `qwen2.5:3b` 12/12 (100%) vs `llama3.2:3b` 8/12 (67%) en herramientas; memoria 6/7 (86%)
 - [x] **Defensa contra *prompt injection*** en 5 capas: delimitadores, detector de frases sospechosas, reglas en el system prompt, confirmación obligatoria para acciones después de leer contenido externo ("contexto contaminado") e higiene del historial
+- [x] **Voz en streaming:** Jarvis habla frase por frase mientras el modelo sigue generando (cola + hilo en segundo plano). Medido: en una respuesta de 3 oraciones empieza a hablar a los 3.3 s en vez de 6.6 s (la mitad de espera)
 - [x] Configuración central (`config.py`): modelo y system prompt en un solo lugar
 - [x] Verificador (*guardrail*) que detecta cuando el modelo dice que hizo una acción sin haber usado ninguna herramienta
 
@@ -75,6 +76,10 @@ Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
 - **Prompt injection:** un archivo con instrucciones escondidas puede manipular al agente, porque para el LLM todo es texto en el mismo contexto. Lo probé con `noticia.txt`: el modelo **intentó guardar un recuerdo falso** dictado por el atacante. Las capas basadas en el prompt fallaron; lo detuvo la capa en el código, que exigió mi confirmación.
 - **Defensa en profundidad:** varias capas, porque ninguna es perfecta. Las del prompt reducen la probabilidad; las del código garantizan que, aunque el modelo caiga, no pueda hacer daño sin permiso.
 - **El veneno se queda en el historial:** el texto malicioso siguió influyendo en mensajes posteriores. Por eso borro del historial el contenido de los archivos al terminar cada turno.
+
+- **Latencia:** en voz importa más cuándo *empieza* la respuesta que cuándo termina. Hablar frase por frase mientras el modelo genera redujo la espera a la mitad.
+- **Cold start:** la primera pregunta tardó 22 s porque Ollama tuvo que cargar los modelos en la RAM; con los modelos ya cargados bajó a 3 s. Nunca sacar conclusiones de una sola medición.
+- **Concurrencia:** una cola de frases y un hilo (*thread*) que habla en segundo plano permiten hablar y generar texto al mismo tiempo.
 
 ## Roadmap
 

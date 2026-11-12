@@ -1,4 +1,5 @@
 import re
+import time
 from datetime import datetime
 
 import ollama
@@ -11,7 +12,7 @@ from herramientas import (
     HERRAMIENTAS_QUE_MODIFICAN,
 )
 from memoria import UMBRAL, buscar_recuerdos
-from voz import hablar
+from voz import esperar_a_que_termine, hablar_frase
 from oido import escuchar
 from config import MODELO, SYSTEM_PROMPT, TEMPERATURA
 
@@ -35,6 +36,13 @@ mensajes = [
 # ¿Se leyó contenido externo (un archivo) en este turno? Se reinicia con cada mensaje tuyo.
 contexto_externo = False
 
+# Medición de LATENCIA de cada turno
+inicio_turno = 0.0          # cuándo presionaste Enter
+primera_voz = None          # cuándo se mandó a decir la primera frase
+
+# Una frase termina en . ! ? o salto de línea
+FIN_DE_FRASE = re.compile(r"(.+?[.!?\n])(\s|$)", re.DOTALL)
+
 
 def llamar_modelo():
     """Una vuelta del modelo, en streaming.
@@ -46,9 +54,12 @@ def llamar_modelo():
         stream=True,
         options={"temperature": TEMPERATURA},
     )
+    global primera_voz
     texto = ""
     llamadas = []
     empezo_a_escribir = False
+    pendiente_de_hablar = ""  # texto que llegó pero todavía no forma una frase completa
+
     for chunk in stream:
         if chunk.message.tool_calls:
             llamadas.extend(chunk.message.tool_calls)
@@ -58,6 +69,23 @@ def llamar_modelo():
                 empezo_a_escribir = True
             print(chunk.message.content, end="", flush=True)
             texto += chunk.message.content
+
+            # VOZ EN STREAMING: apenas se completa una frase, se manda a decir
+            # mientras el modelo sigue generando la siguiente.
+            if HABLAR:
+                pendiente_de_hablar += chunk.message.content
+                while (frase := FIN_DE_FRASE.match(pendiente_de_hablar)):
+                    hablar_frase(frase.group(1))
+                    if primera_voz is None:
+                        primera_voz = time.time()
+                    pendiente_de_hablar = pendiente_de_hablar[frase.end():]
+
+    # Lo que quedó al final sin punto también se dice
+    if HABLAR and pendiente_de_hablar.strip() and not llamadas:
+        hablar_frase(pendiente_de_hablar)
+        if primera_voz is None:
+            primera_voz = time.time()
+
     if empezo_a_escribir:
         print()
     return texto, llamadas
@@ -92,6 +120,9 @@ def ejecutar_herramienta(llamada):
 
 try:
     while True:
+        # Esperamos a que Jarvis termine de hablar (para que el micrófono no lo grabe a él)
+        esperar_a_que_termine()
+
         # Puedes escribir tu mensaje, o dejarlo vacío y presionar Enter para HABLAR.
         pregunta = input("\nTú (escribe, o Enter para hablar): ").strip()
         if not pregunta:
@@ -103,6 +134,9 @@ try:
 
         if pregunta.lower().strip(" .!¡") == "salir":
             break
+
+        inicio_turno = time.time()
+        primera_voz = None
 
         # ---------- RAG: Retrieval-Augmented Generation ----------
         # R (Retrieval): buscamos los recuerdos más parecidos a la pregunta.
@@ -151,8 +185,12 @@ try:
             if not llamadas:
                 # Ya no necesita herramientas: esa es la respuesta final
                 mensajes.append({"role": "assistant", "content": texto})
-                if HABLAR and texto:
-                    hablar(texto)  # TTS: Jarvis lee su respuesta en voz alta
+                # Medimos la latencia del turno
+                fin = time.time()
+                if HABLAR and primera_voz is not None:
+                    print(f"  ⏱️  Empezó a hablar a los {primera_voz - inicio_turno:.1f} s · "
+                          f"respuesta completa a los {fin - inicio_turno:.1f} s "
+                          f"(antes esperaba los {fin - inicio_turno:.1f} s completos para hablar)")
                 termino = True
                 break
 
