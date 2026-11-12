@@ -8,6 +8,7 @@ Uso:
 """
 
 import sys
+import time
 
 import ollama
 
@@ -60,15 +61,28 @@ def herramienta_elegida(mensaje):
 
 def eval_herramientas():
     print(f"\n🧪 EVAL 1: elección de herramientas  (modelo: {modelo})\n")
+
+    # Calentamiento: la primera llamada carga el modelo en la RAM (cold start).
+    # La hacemos ANTES de medir, para que no ensucie los tiempos.
+    print("  (cargando el modelo en la RAM...)")
+    inicio = time.time()
+    herramienta_elegida("hola")
+    print(f"  ❄️  Cold start: {time.time() - inicio:.1f} s\n")
+
     aciertos = 0
+    tiempos = []
     for mensaje, esperada in CASOS_HERRAMIENTAS:
+        inicio = time.time()
         elegida, argumentos = herramienta_elegida(mensaje)
+        tiempos.append(time.time() - inicio)
         ok = elegida == esperada
         aciertos += ok
         marca = "✅" if ok else "❌"
         detalle = f"{elegida}({argumentos})" if elegida else "ninguna"
         print(f"  {marca} {mensaje:<58} esperaba: {str(esperada):<20} eligió: {detalle}")
-    return aciertos, len(CASOS_HERRAMIENTAS)
+    promedio = sum(tiempos) / len(tiempos)
+    print(f"\n  ⏱️  Tiempo promedio por respuesta (en caliente): {promedio:.2f} s")
+    return aciertos, len(CASOS_HERRAMIENTAS), promedio
 
 
 # =====================================================================
@@ -120,8 +134,9 @@ def eval_memoria():
 
 
 if __name__ == "__main__":
-    a1, t1 = eval_herramientas()
+    a1, t1, velocidad = eval_herramientas()
     a2, t2 = eval_memoria()
-    print("\n📊 RESULTADO")
+    print(f"\n📊 RESULTADO  ({modelo})")
     print(f"  Herramientas: {a1}/{t1}  ({a1 / t1:.0%})")
+    print(f"  Velocidad:    {velocidad:.2f} s por respuesta")
     print(f"  Memoria:      {a2}/{t2}  ({a2 / t2:.0%})")

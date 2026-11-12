@@ -1,0 +1,7 @@
+Ideas para proyectos de IA en el futuro:
+
+1. Un compañero de banda con IA que me acompañe cuando toco guitarra.
+2. Un agente que me ayude a llenar el registro semanal de actividades de la pasantía.
+3. Un coach de gimnasio que cuente repeticiones con la cámara.
+
+Lo que necesito aprender primero: agentes, memoria con embeddings y modelos de voz.

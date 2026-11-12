@@ -1,0 +1,4 @@
+ollama
+mlx-whisper
+sounddevice
+numpy

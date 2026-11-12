@@ -1,91 +1,152 @@
 # Jarvis 🤖
 
-Asistente personal de IA que estoy construyendo desde cero para aprender AI Engineering.
-Corre 100% local en mi Mac (M1, 8 GB) con modelos open source, sin costo.
+**Asistente personal de IA por voz, construido desde cero, que corre 100% local en una MacBook Air M1 de 8 GB, sin costo y sin enviar datos a la nube.**
 
-## Estado actual: v4 – Voz e iniciativa
+Jarvis conversa por texto o por voz, usa herramientas, recuerda cosas entre sesiones (RAG), avisa por iniciativa propia y se defiende de ataques de *prompt injection*. Su calidad se mide con evals automáticas.
 
-- [x] Chat en la terminal con un LLM local (`qwen2.5:3b` vía Ollama)
-- [x] Memoria de la conversación (historial de mensajes)
-- [x] Personalidad y reglas definidas con un *system prompt*
-- [x] Respuestas en *streaming* (se muestran mientras se generan)
-- [x] Temperatura configurable + experimento comparativo (`experimento_temperatura.py`)
-- [x] *Tool calling*: herramientas para ver la fecha/hora, crear notas y leer notas (`herramientas.py`)
-- [x] *Agent loop*: el modelo encadena varias herramientas (pensar → actuar → observar) con un freno de seguridad de 5 pasos
-- [x] Archivos con *sandbox* (`espacio_jarvis/`) y confirmación humana antes de escribir (*human-in-the-loop*)
-- [x] Memoria a largo plazo con **RAG**: recuerdos guardados con embeddings (`bge-m3`) en `memoria.json` y búsqueda semántica antes de cada respuesta (`memoria.py`)
-- [x] Voz: Jarvis habla con TTS (`say` de macOS, `voz.py`) y escucha con STT (Whisper optimizado para Apple Silicon con MLX, `oido.py`)
-- [x] Iniciativa: recordatorios con un proceso en segundo plano que avisa con notificaciones de macOS (`recordatorios.py`, `vigilante.py`)
-- [x] **Evals automáticas** (`evals.py`): 12 casos de elección de herramientas y 7 de búsqueda en memoria. Resultado: `qwen2.5:3b` 12/12 (100%) vs `llama3.2:3b` 8/12 (67%) en herramientas; memoria 6/7 (86%)
-- [x] **Defensa contra *prompt injection*** en 5 capas: delimitadores, detector de frases sospechosas, reglas en el system prompt, confirmación obligatoria para acciones después de leer contenido externo ("contexto contaminado") e higiene del historial
-- [x] **Voz en streaming:** Jarvis habla frase por frase mientras el modelo sigue generando (cola + hilo en segundo plano). Medido: en una respuesta de 3 oraciones empieza a hablar a los 3.3 s en vez de 6.6 s (la mitad de espera)
-- [x] Configuración central (`config.py`): modelo y system prompt en un solo lugar
-- [x] Verificador (*guardrail*) que detecta cuando el modelo dice que hizo una acción sin haber usado ninguna herramienta
+Lo construí para aprender AI Engineering: el *agent loop*, el RAG y las defensas están programados a mano, sin frameworks como LangChain, para entender cada pieza por dentro.
 
-## Cómo correrlo
+> 🎬 **Demo:** _(agrega aquí el enlace a tu video)_
 
-1. Instala [Ollama](https://ollama.com) y descarga el modelo:
-   ```bash
-   ollama pull qwen2.5:3b
-   ```
-2. Crea el entorno e instala dependencias:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install ollama
-   ```
-3. Ejecuta:
-   ```bash
-   python3 jarvis.py
-   ```
-   Escribe `salir` para terminar.
+---
 
-## Lo que aprendí
+## ✨ Qué hace
 
-- **LLM:** un modelo que predice el siguiente *token* (pedazo de texto) una y otra vez. Es como un autocompletado gigante.
-- **Ollama:** el programa que descarga y ejecuta modelos en mi computadora. No es el modelo en sí.
-- **El modelo no tiene memoria (*stateless*):** para que "recuerde", mi programa guarda el historial de mensajes y se lo envía completo en cada turno.
-- **Ventana de contexto:** el límite de texto que el modelo puede leer de una vez. Mientras más larga la conversación, más se acerca a ese límite.
-- **System prompt:** instrucciones de fondo que definen quién es el asistente y cómo responde.
-- **Alucinación:** cuando el modelo inventa información con seguridad. Un buen system prompt la reduce, pero no la elimina.
-- **Streaming:** recibir la respuesta en pedazos (*chunks*) a medida que se genera cada token. Tarda lo mismo, pero se siente más rápida.
-- **Temperatura:** controla qué tan arriesgado es el modelo al elegir el siguiente token. Con 0 siempre elige el más probable (en mi experimento repitió el mismo nombre 3 veces); con 1.5 dio 3 nombres distintos. Baja = precisión, alta = creatividad.
-- **Tool calling:** el modelo no ejecuta nada; solo *pide* usar una herramienta. Mi programa la ejecuta y le devuelve el resultado (rol `tool`). El modelo nunca ve el código, solo un "menú" en JSON Schema con nombre, descripción y parámetros.
-- **Elegir el modelo importa:** con el mismo código, `llama3.2:3b` usaba herramientas hasta para contar chistes; `qwen2.5:3b` lo hizo mucho mejor.
-- **Agent loop:** ciclo de pensar → actuar → observar que se repite hasta que el modelo ya no pide herramientas. Necesita un límite de pasos para evitar ciclos infinitos.
-- **Parallel tool calling y dependencias:** el modelo pedía varias herramientas a la vez aunque una dependiera de otra, y rellenaba datos con texto genérico. Lo resolví ejecutando una herramienta por vuelta y recordándole las pendientes en la observación.
-- **Las instrucciones sugieren, el código obliga:** las reglas críticas no pueden depender solo del prompt.
-- **Diseño de herramientas:** `crear_nota` agrega la fecha y hora automáticamente, así el dato es correcto aunque el modelo no lo incluya.
+| Capacidad | Cómo funciona |
+|---|---|
+| 🧠 **Conversa** | LLM local `qwen2.5:3b` (cuantizado a 4 bits) vía Ollama, con historial y *system prompt* |
+| 🔧 **Usa herramientas** | *Tool calling* + *agent loop* propio (pensar → actuar → observar) con freno de 5 pasos |
+| 📁 **Archivos** | Lee y escribe solo dentro de un *sandbox*, con confirmación humana para escribir |
+| 💾 **Recuerda** | Memoria a largo plazo con **RAG**: embeddings `bge-m3`, similitud coseno, top-k y umbral calibrado |
+| 🎙️ **Escucha** | Voz a texto con **Whisper** optimizado para Apple Silicon (MLX) |
+| 🔊 **Habla** | Texto a voz **frase por frase mientras genera** (cola + hilo en segundo plano) |
+| 🔔 **Toma la iniciativa** | Proceso en segundo plano que revisa recordatorios y avisa con notificaciones de macOS |
+| 🛡️ **Se defiende** | 5 capas contra *prompt injection* + verificador de "alucinaciones de acción" |
+| 🧪 **Se mide** | Evals automáticas de herramientas, memoria y velocidad |
 
-- **Sandbox y human-in-the-loop:** el agente solo puede tocar archivos dentro de una carpeta (lo garantiza el código, no el prompt) y las acciones que cambian algo requieren mi confirmación.
-- **Embeddings:** un vector que representa el significado de un texto. Su dimensión depende del modelo (`bge-m3` = 1024), no del largo del texto. `nomic-embed-text` falló en español; `bge-m3` (multilingüe) funcionó.
-- **Similitud coseno y top-k:** comparar el vector de la consulta con el de cada documento y quedarse con los k más parecidos.
-- **RAG (Retrieval-Augmented Generation):** buscar los recuerdos relevantes, agregarlos al mensaje y que el LLM responda con ellos. El modelo no memoriza nada: mi código le pone la información correcta en el contexto.
-- **Calibrar el umbral con datos:** empecé con 0.55 a ojo y bloqueaba todo. Midiendo puntajes reales lo bajé a 0.45. Hay un trade-off entre falsos negativos y falsos positivos; en RAG suele ser peor perder un recuerdo relevante.
+## 🏗️ Arquitectura
 
-- **TTS y STT:** el LLM nunca habla ni escucha; son componentes aparte. STT (Whisper) convierte audio en texto y TTS convierte texto en audio. Para la computadora, el audio es una lista de números (16.000 por segundo).
-- **Agentes proactivos:** un proceso en segundo plano revisa cada cierto tiempo (*polling*) si se cumple una condición (*trigger*) y actúa. Mi vigilante solo avisa: a más impacto de una acción, menos autonomía.
-- **Alucinación de acción y guardrails:** el modelo dijo "creé un recordatorio" sin usar la herramienta. Lo resolví con un verificador en el código que rechaza esa respuesta y lo obliga a actuar de verdad.
-- **Diseño de herramientas:** el modelo pequeño calculó mal "el viernes" (puso un domingo). Ahora el modelo solo indica `dia_semana` y `hora`, y el código calcula la fecha exacta. Los cálculos exactos van en el código.
+```mermaid
+flowchart LR
+    U["⌨️ Texto / 🎙️ Voz"] --> STT["Whisper (STT)"]
+    STT --> RAG
+    U --> RAG["Búsqueda en memoria<br/>bge-m3 + similitud coseno"]
+    RAG --> LOOP{{"Agent loop<br/>qwen2.5:3b"}}
+    LOOP -- "pide herramienta" --> G["Guardrails<br/>sandbox · confirmación · verificador"]
+    G --> T["Herramientas<br/>notas · archivos · recuerdos · recordatorios"]
+    T -- "resultado" --> LOOP
+    LOOP -- "respuesta" --> TTS["TTS frase por frase"]
+    T -.-> D[("memoria.json<br/>recordatorios.json")]
+    V["Vigilante<br/>(segundo plano)"] -.-> D
+    V --> N["🔔 Notificación macOS"]
+```
 
-- **Evals:** un examen con solucionario que se corre solo y da una nota. Con temperatura 0 para que sea repetible. Me permitió confirmar con datos que `qwen` es mejor que `llama` para elegir herramientas (100% vs 67%).
-- **Las evals muestran qué pieza falla:** la búsqueda en memoria sacó la misma nota con los dos LLMs, porque esa parte depende del modelo de embeddings, no del LLM.
-- **Prueba de regresión:** `qwen` confundía `crear_nota` con `guardar_recuerdo` porque sus descripciones se pisaban. Al separarlas subió a 12/12 sin romper ningún otro caso.
-- **No hacer trampa en el examen:** "¿qué almorzar?" trae la rutina del gimnasio. Es un límite real de los embeddings; la solución correcta (re-ranking o búsqueda híbrida) queda como mejora futura.
+**Idea central:** el LLM nunca ejecuta nada. Solo *pide* usar una herramienta; mi código la ejecuta, aplica las protecciones y le devuelve el resultado.
 
-- **Prompt injection:** un archivo con instrucciones escondidas puede manipular al agente, porque para el LLM todo es texto en el mismo contexto. Lo probé con `noticia.txt`: el modelo **intentó guardar un recuerdo falso** dictado por el atacante. Las capas basadas en el prompt fallaron; lo detuvo la capa en el código, que exigió mi confirmación.
-- **Defensa en profundidad:** varias capas, porque ninguna es perfecta. Las del prompt reducen la probabilidad; las del código garantizan que, aunque el modelo caiga, no pueda hacer daño sin permiso.
-- **El veneno se queda en el historial:** el texto malicioso siguió influyendo en mensajes posteriores. Por eso borro del historial el contenido de los archivos al terminar cada turno.
+## 📊 Resultados medidos
 
-- **Latencia:** en voz importa más cuándo *empieza* la respuesta que cuándo termina. Hablar frase por frase mientras el modelo genera redujo la espera a la mitad.
-- **Cold start:** la primera pregunta tardó 22 s porque Ollama tuvo que cargar los modelos en la RAM; con los modelos ya cargados bajó a 3 s. Nunca sacar conclusiones de una sola medición.
-- **Concurrencia:** una cola de frases y un hilo (*thread*) que habla en segundo plano permiten hablar y generar texto al mismo tiempo.
+**Evals** (`python3 evals.py`, temperatura 0 para que sean repetibles):
 
-## Roadmap
+| Modelo | Elección de herramientas | Búsqueda en memoria |
+|---|---|---|
+| `qwen2.5:3b` ✅ (elegido) | **12/12 (100%)** | 6/7 (86%) |
+| `llama3.2:3b` | 8/12 (67%) | 6/7 (86%) |
+
+`llama` usaba herramientas hasta para contar un chiste. La memoria saca la misma nota con los dos porque depende del modelo de embeddings, no del LLM.
+
+**Latencia de voz** (respuesta de 3 oraciones, modelos ya cargados):
+
+| | Empieza a hablar |
+|---|---|
+| Esperando la respuesta completa | 6.6 s |
+| Frase por frase (actual) | **3.3 s** |
+
+## 🛡️ Seguridad
+
+Probé un ataque real: un archivo con instrucciones escondidas que le ordenaban a Jarvis guardar un recuerdo falso. **El modelo cayó e intentó guardarlo**; lo detuvo la capa en el código.
+
+1. **Delimitadores:** el contenido externo se marca como datos, no como instrucciones.
+2. **Detector** de frases típicas de inyección.
+3. **Reglas** en el *system prompt*.
+4. **Contexto contaminado:** si en un turno se leyó un archivo, cualquier acción que guarde o cree algo exige confirmación humana. *(La que detuvo el ataque.)*
+5. **Higiene del historial:** el contenido de los archivos se borra del historial al terminar cada turno.
+
+Además: *sandbox* de archivos, *human-in-the-loop* para escribir y un **verificador** que rechaza respuestas del tipo "ya lo guardé" cuando no se usó ninguna herramienta.
+
+**Principio:** las instrucciones en el prompt *reducen la probabilidad* de error; el código *garantiza* que un error no cause daño.
+
+## 🚀 Cómo correrlo
+
+Requisitos: Mac con Apple Silicon, Python 3.9+ y [Ollama](https://ollama.com).
+
+```bash
+# 1. Modelos (LLM + embeddings)
+ollama pull qwen2.5:3b
+ollama pull bge-m3
+
+# 2. Entorno y dependencias
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 3. Jarvis (escribe, o Enter vacío para hablar; "salir" para terminar)
+python3 jarvis.py
+
+# 4. (Otra terminal) el vigilante de recordatorios
+python3 vigilante.py
+
+# 5. Evals
+python3 evals.py
+```
+
+Para probar la defensa contra *prompt injection*, copia `ejemplos/noticia_con_inyeccion.txt` a `espacio_jarvis/` y pídele a Jarvis que lo lea.
+
+## 📂 Estructura
+
+| Archivo | Rol |
+|---|---|
+| `jarvis.py` | Programa principal: RAG, *agent loop*, guardrails y voz |
+| `config.py` | Modelo, temperatura y *system prompt* (una sola fuente de verdad) |
+| `herramientas.py` | Herramientas y sus definiciones (JSON Schema), *sandbox*, detector de inyección |
+| `memoria.py` | Memoria a largo plazo: embeddings, similitud coseno, top-k y umbral |
+| `recordatorios.py` / `vigilante.py` | Recordatorios y proceso proactivo en segundo plano |
+| `oido.py` / `voz.py` | STT con Whisper y TTS en streaming |
+| `evals.py` | Evals automáticas de herramientas, memoria y velocidad |
+| `experimentos/` | Experimentos de aprendizaje (temperatura, embeddings) |
+| `ejemplos/` | Archivos de ejemplo, incluido el del ataque de *prompt injection* |
+
+## 💡 Lo que aprendí
+
+**Fundamentos de LLMs**
+- Un LLM predice el siguiente *token* una y otra vez; no tiene memoria (*stateless*): mi código le reenvía el historial en cada turno, dentro de una **ventana de contexto** limitada (32.768 tokens en `qwen2.5:3b`).
+- La **temperatura** controla qué tan arriesgado es al elegir tokens: con 0 es repetible (clave para las evals); alta, creativo.
+- Las **alucinaciones** se reducen con un buen *system prompt* y dándole datos reales, pero no desaparecen.
+- La **cuantización** a 4 bits (Q4_K_M) hace que un modelo de 3.100 millones de parámetros ocupe ~2 GB en vez de ~6 GB. Sin ella, la IA local en una laptop de 8 GB no sería posible.
+
+**Agentes**
+- **Tool calling:** el modelo solo ve un "menú" (nombre, descripción y parámetros); la descripción decide cuándo elige cada herramienta. Dos descripciones que se pisaban causaron el único fallo de `qwen` en las evals.
+- **Agent loop** con freno de pasos; cuando el modelo pedía herramientas en paralelo aunque dependieran entre sí, ejecuté una por vuelta y le recordé las pendientes.
+- **Diseño de herramientas:** los cálculos exactos (fechas, horas) van en el código. El modelo puso "el viernes" en un domingo; ahora solo indica `dia_semana` y `hora`.
+- **Las instrucciones sugieren, el código obliga:** *sandbox*, confirmaciones y verificador viven en el código.
+- **Proactividad:** un proceso que revisa periódicamente (*polling*) y actúa cuando se cumple una condición (*trigger*). A más impacto de una acción, menos autonomía.
+
+**RAG y memoria**
+- Un **embedding** es un vector que representa significado; su dimensión depende del modelo (`bge-m3` = 1024). `nomic-embed-text` falló en español; `bge-m3`, multilingüe, funcionó.
+- El **umbral** se calibra con datos: empecé con 0.55 a ojo y bloqueaba todo; midiendo, lo bajé a 0.45. En RAG suele ser peor un falso negativo que un falso positivo.
+- Límite conocido: "¿qué almorzar?" trae la rutina del gimnasio. Mejora futura: *re-ranking* o búsqueda híbrida.
+
+**Calidad, seguridad y rendimiento**
+- **Evals** + **pruebas de regresión**: medir, arreglar, volver a medir todo.
+- *Prompt injection* real, **defensa en profundidad** y el veneno que se queda en el historial.
+- **Latencia:** en voz importa cuándo *empieza* la respuesta; el *cold start* (22 s la primera vez, 3 s después) muestra por qué nunca hay que confiar en una sola medición.
+
+## 🗺️ Roadmap
 
 - [x] v0 – Cerebro: chat con memoria y personalidad
-- [x] v1 – Manos: *tool calling* y *agent loop* (que pueda ejecutar acciones)
+- [x] v1 – Manos: *tool calling* y *agent loop*
 - [x] v2 – Memoria a largo plazo: embeddings y RAG
-- [x] v3 – Voz: hablarle y que responda hablando
-- [x] v4 – Iniciativa: que actúe por su cuenta
+- [x] v3 – Voz: STT y TTS
+- [x] v4 – Iniciativa: recordatorios proactivos
 - [x] v5 – Evals y seguridad
+- [x] v6 – Optimización: voz en streaming, cuantización y medición de latencia
+- [ ] Mejoras futuras: *re-ranking* en la memoria, más casos de evals, *fine-tuning* de un modelo pequeño
